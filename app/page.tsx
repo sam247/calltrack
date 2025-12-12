@@ -9,6 +9,8 @@ import { FAQ } from "@/components/landing/FAQ";
 import { CTA } from "@/components/landing/CTA";
 import { Footer } from "@/components/landing/Footer";
 
+export const dynamic = 'force-dynamic'
+
 export default function Home() {
   return (
     <div className="min-h-screen bg-background">
