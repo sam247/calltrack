@@ -15,13 +15,14 @@ export async function checkCallQuota(workspaceId: string): Promise<QuotaCheck> {
   const supabase = await createClient();
 
   // Get subscription
-  const { data: subscription } = await supabase
-    .from('subscriptions')
+  const { data: subscription } = await (supabase
+    .from('subscriptions' as any)
     .select('calls_included, calls_used, overage_calls, status')
     .eq('workspace_id', workspaceId)
-    .single();
+    .single() as any);
 
-  if (!subscription) {
+  const subscriptionData = subscription as { status: string; calls_used: number; calls_included: number; overage_calls: number } | null;
+  if (!subscriptionData) {
     // No subscription - allow calls but track for trial
     return {
       allowed: true,
@@ -33,18 +34,18 @@ export async function checkCallQuota(workspaceId: string): Promise<QuotaCheck> {
   }
 
   // Check if subscription is active
-  if (subscription.status !== 'active' && subscription.status !== 'trialing') {
+  if (subscriptionData.status !== 'active' && subscriptionData.status !== 'trialing') {
     return {
       allowed: false,
-      callsUsed: subscription.calls_used || 0,
-      callsIncluded: subscription.calls_included || 0,
-      overageCalls: subscription.overage_calls || 0,
-      isUnlimited: subscription.calls_included === -1,
+      callsUsed: subscriptionData.calls_used || 0,
+      callsIncluded: subscriptionData.calls_included || 0,
+      overageCalls: subscriptionData.overage_calls || 0,
+      isUnlimited: subscriptionData.calls_included === -1,
     };
   }
 
-  const callsIncluded = subscription.calls_included || 0;
-  const callsUsed = subscription.calls_used || 0;
+  const callsIncluded = subscriptionData.calls_included || 0;
+  const callsUsed = subscriptionData.calls_used || 0;
   const isUnlimited = callsIncluded === -1;
 
   // Unlimited plan
@@ -65,7 +66,7 @@ export async function checkCallQuota(workspaceId: string): Promise<QuotaCheck> {
     allowed,
     callsUsed,
     callsIncluded,
-    overageCalls: subscription.overage_calls || 0,
+    overageCalls: subscriptionData.overage_calls || 0,
     isUnlimited: false,
   };
 }
@@ -77,41 +78,42 @@ export async function incrementCallUsage(workspaceId: string): Promise<void> {
   const supabase = await createClient();
 
   // Get subscription
-  const { data: subscription } = await supabase
-    .from('subscriptions')
+  const { data: subscription } = await (supabase
+    .from('subscriptions' as any)
     .select('calls_included, calls_used, overage_calls')
     .eq('workspace_id', workspaceId)
-    .single();
+    .single() as any);
 
-  if (!subscription) {
+  const subscriptionData = subscription as { calls_included: number; calls_used: number; overage_calls: number } | null;
+  if (!subscriptionData) {
     // No subscription - create trial usage tracking
     return;
   }
 
-  const callsIncluded = subscription.calls_included || 0;
-  const callsUsed = (subscription.calls_used || 0) + 1;
+  const callsIncluded = subscriptionData.calls_included || 0;
+  const callsUsed = (subscriptionData.calls_used || 0) + 1;
   const isUnlimited = callsIncluded === -1;
 
   if (isUnlimited) {
     // Just increment usage for tracking
-    await supabase
-      .from('subscriptions')
+    const updateQuery = supabase.from('subscriptions' as any) as any;
+    await updateQuery
       .update({
         calls_used: callsUsed,
         updated_at: new Date().toISOString(),
-      })
+      } as any)
       .eq('workspace_id', workspaceId);
   } else {
     // Check if overage
-    const overageCalls = callsUsed > callsIncluded ? (subscription.overage_calls || 0) + 1 : (subscription.overage_calls || 0);
+    const overageCalls = callsUsed > callsIncluded ? (subscriptionData.overage_calls || 0) + 1 : (subscriptionData.overage_calls || 0);
 
-    await supabase
-      .from('subscriptions')
+    const updateQuery2 = supabase.from('subscriptions' as any) as any;
+    await updateQuery2
       .update({
         calls_used: callsUsed,
         overage_calls: overageCalls,
         updated_at: new Date().toISOString(),
-      })
+      } as any)
       .eq('workspace_id', workspaceId);
   }
 }

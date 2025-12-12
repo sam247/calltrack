@@ -177,20 +177,21 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Get tracking number and verify access
-    const { data: trackingNumber } = await supabase
+    const { data: trackingNumber } = await (supabase
       .from('tracking_numbers' as any)
       .select('*, workspaces!inner(id)')
       .eq('id', id)
-      .single();
+      .single() as any);
 
-    if (!trackingNumber) {
+    const trackingNumberData = trackingNumber as { workspace_id: string; twilio_number_sid: string | null } | null;
+    if (!trackingNumberData) {
       return NextResponse.json({ error: 'Tracking number not found' }, { status: 404 });
     }
 
     const { data: member } = await supabase
       .from('workspace_members')
       .select('role')
-      .eq('workspace_id', trackingNumber.workspace_id)
+      .eq('workspace_id', trackingNumberData.workspace_id)
       .eq('user_id', user.id)
       .single();
 
@@ -200,8 +201,8 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Update Twilio configuration if forwarding number changed
-    if (forwarding_number !== undefined && trackingNumber.twilio_number_sid) {
-      await updatePhoneNumber(trackingNumber.twilio_number_sid, {
+    if (forwarding_number !== undefined && trackingNumberData.twilio_number_sid) {
+      await updatePhoneNumber(trackingNumberData.twilio_number_sid, {
         voiceUrl: `${request.nextUrl.origin}/api/webhooks/twilio`,
         statusCallback: `${request.nextUrl.origin}/api/webhooks/twilio`,
       });
@@ -218,9 +219,9 @@ export async function PATCH(request: NextRequest) {
     if (forwarding_number !== undefined) updateData.forwarding_number = forwarding_number;
     if (is_active !== undefined) updateData.is_active = is_active;
 
-    const { data: updated, error } = await supabase
-      .from('tracking_numbers' as any)
-      .update(updateData)
+    const updateQuery = supabase.from('tracking_numbers' as any) as any;
+    const { data: updated, error } = await updateQuery
+      .update(updateData as any)
       .eq('id', id)
       .select()
       .single();
@@ -258,20 +259,21 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Get tracking number and verify access
-    const { data: trackingNumber } = await supabase
+    const { data: trackingNumber } = await (supabase
       .from('tracking_numbers' as any)
       .select('*, workspaces!inner(id)')
       .eq('id', id)
-      .single();
+      .single() as any);
 
-    if (!trackingNumber) {
+    const trackingNumberData = trackingNumber as { workspace_id: string; twilio_number_sid: string | null } | null;
+    if (!trackingNumberData) {
       return NextResponse.json({ error: 'Tracking number not found' }, { status: 404 });
     }
 
     const { data: member } = await supabase
       .from('workspace_members')
       .select('role')
-      .eq('workspace_id', trackingNumber.workspace_id)
+      .eq('workspace_id', trackingNumberData.workspace_id)
       .eq('user_id', user.id)
       .single();
 
@@ -281,10 +283,10 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Release number from Twilio if it has a SID
-    if (trackingNumber.twilio_number_sid) {
+    if (trackingNumberData.twilio_number_sid) {
       const { releasePhoneNumber } = await import('@/lib/twilio/numbers');
       try {
-        await releasePhoneNumber(trackingNumber.twilio_number_sid);
+        await releasePhoneNumber(trackingNumberData.twilio_number_sid);
       } catch (error) {
         console.error('Error releasing phone number from Twilio:', error);
         // Continue with deletion even if Twilio release fails

@@ -37,7 +37,8 @@ export async function POST(request: NextRequest) {
       .eq('id', call_log_id)
       .single();
 
-    if (callLogError || !callLog) {
+    const callLogData = callLog as { workspace_id: string; duration_seconds: number | null; caller_number: string; source: string | null } | null;
+    if (callLogError || !callLogData) {
       return NextResponse.json(
         { error: 'Call log not found' },
         { status: 404 }
@@ -48,7 +49,7 @@ export async function POST(request: NextRequest) {
     const { data: member } = await supabase
       .from('workspace_members')
       .select('role')
-      .eq('workspace_id', callLog.workspace_id)
+      .eq('workspace_id', callLogData.workspace_id)
       .eq('user_id', user.id)
       .single();
 
@@ -57,9 +58,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Update status to processing
-    await supabase
-      .from('call_recordings')
-      .update({ transcription_status: 'processing' })
+    const updateProcessingQuery = supabase.from('call_recordings' as any) as any;
+    await updateProcessingQuery
+      .update({ transcription_status: 'processing' } as any)
       .eq('call_log_id', call_log_id);
 
     try {
@@ -67,7 +68,7 @@ export async function POST(request: NextRequest) {
       const storageResult = await storeRecordingInStorage(
         recording_url,
         call_log_id,
-        callLog.workspace_id
+        callLogData.workspace_id
       );
 
       // Transcribe audio
@@ -78,14 +79,14 @@ export async function POST(request: NextRequest) {
 
       // Generate insights
       const insights = await generateCallInsights(transcription.text, {
-        duration: callLog.duration_seconds || undefined,
-        callerNumber: callLog.caller_number,
-        source: callLog.source || undefined,
+        duration: callLogData.duration_seconds || undefined,
+        callerNumber: callLogData.caller_number,
+        source: callLogData.source || undefined,
       });
 
       // Update call recording with all results
-      const { error: updateError } = await supabase
-        .from('call_recordings')
+      const updateQuery = supabase.from('call_recordings' as any) as any;
+      const { error: updateError } = await updateQuery
         .update({
           transcription: transcription.text,
           transcription_status: 'completed',
@@ -94,7 +95,7 @@ export async function POST(request: NextRequest) {
           summary: insights.summary,
           storage_path: storageResult.storagePath || recording_url,
           processed_at: new Date().toISOString(),
-        })
+        } as any)
         .eq('call_log_id', call_log_id);
 
       if (updateError) {
@@ -102,13 +103,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Store insights in metadata (could be a separate table in production)
-      await supabase
-        .from('call_logs')
-        .update({
-          // Store insights as JSON in a metadata field if available
-          // For now, we'll just log it
-        })
-        .eq('id', call_log_id);
+      // For now, we'll just log it - no update needed
 
       return NextResponse.json({
         success: true,
@@ -118,9 +113,9 @@ export async function POST(request: NextRequest) {
       });
     } catch (error: any) {
       // Update status to failed
-      await supabase
-        .from('call_recordings')
-        .update({ transcription_status: 'failed' })
+      const updateFailedQuery = supabase.from('call_recordings' as any) as any;
+      await updateFailedQuery
+        .update({ transcription_status: 'failed' } as any)
         .eq('call_log_id', call_log_id);
 
       throw error;

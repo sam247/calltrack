@@ -52,14 +52,15 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient();
 
     // Find the tracking number
-    const { data: trackingNumber, error: trackingError } = await supabase
-      .from('tracking_numbers')
+    const { data: trackingNumber, error: trackingError } = await (supabase
+      .from('tracking_numbers' as any)
       .select('*, workspaces(*)')
       .eq('phone_number', to)
       .eq('is_active', true)
-      .single();
+      .single() as any);
 
-    if (trackingError || !trackingNumber) {
+    const trackingNumberData = trackingNumber as { id: string; workspace_id: string; forwarding_number: string | null; twilio_number_sid: string | null; source: string | null; campaign: string | null } | null;
+    if (trackingError || !trackingNumberData) {
       console.error('Tracking number not found:', trackingError);
       // Return empty TwiML to hang up
       const twiml = new twilio.twiml.VoiceResponse();
@@ -70,7 +71,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const workspaceId = trackingNumber.workspace_id;
+    const workspaceId = trackingNumberData.workspace_id;
 
     // Get attribution data from caller (if available via custom parameters or lookup)
     // In a real implementation, you'd get this from a database lookup based on caller number
@@ -84,36 +85,37 @@ export async function POST(request: NextRequest) {
     // Handle different call statuses
     if (callStatus === 'ringing' || callStatus === 'in-progress') {
       // Create or update call log
-      const { data: existingCall } = await supabase
-        .from('call_logs')
+      const { data: existingCall } = await (supabase
+        .from('call_logs' as any)
         .select('id')
         .eq('workspace_id', workspaceId)
         .eq('caller_number', from)
         .order('call_started_at', { ascending: false })
         .limit(1)
-        .single();
+        .single() as any);
 
       if (!existingCall) {
         // Try to get attribution from recent visitor activity
         // Look for recent attribution paths that might match this caller
-        const { data: recentAttribution } = await supabase
-          .from('attribution_paths')
+        const { data: recentAttribution } = await (supabase
+          .from('attribution_paths' as any)
           .select('last_touch')
           .eq('workspace_id', workspaceId)
           .order('updated_at', { ascending: false })
           .limit(1)
-          .single();
+          .single() as any);
 
         const lastTouch = recentAttribution?.last_touch as any;
         
         // Create new call log with attribution
-        const { data: newCall } = await supabase.from('call_logs').insert({
+        const insertQuery = supabase.from('call_logs' as any) as any;
+        const insertResult = await insertQuery.insert({
           workspace_id: workspaceId,
-          tracking_number_id: trackingNumber.id,
+          tracking_number_id: trackingNumberData.id,
           caller_number: from,
           caller_name: callerId || null,
-          source: trackingNumber.source || lastTouch?.source || null,
-          campaign: trackingNumber.campaign || lastTouch?.campaign || null,
+          source: trackingNumberData.source || lastTouch?.source || null,
+          campaign: trackingNumberData.campaign || lastTouch?.campaign || null,
           utm_source: lastTouch?.source || null,
           utm_medium: lastTouch?.medium || null,
           utm_campaign: lastTouch?.campaign || null,
@@ -121,11 +123,13 @@ export async function POST(request: NextRequest) {
           referrer: lastTouch?.referrer || null,
           status: 'completed', // Will update on completion
           call_started_at: new Date().toISOString(),
-        }).select().single();
+        } as any).select().single();
+        const newCall = insertResult.data as { id: string } | null;
 
         if (newCall) {
           // Create call event
-          await supabase.from('call_events').insert({
+          const eventsInsertQuery = supabase.from('call_events' as any) as any;
+          await eventsInsertQuery.insert({
             call_log_id: newCall.id,
             workspace_id: workspaceId,
             event_type: callStatus,
@@ -135,15 +139,17 @@ export async function POST(request: NextRequest) {
               to,
               direction,
             },
-          });
+          } as any);
 
           // Increment call usage
           await incrementCallUsage(workspaceId);
         }
       } else {
         // Create call event for existing call
-        await supabase.from('call_events').insert({
-          call_log_id: existingCall.id,
+        const existingCallData = existingCall as { id: string };
+        const eventsInsertQuery2 = supabase.from('call_events' as any) as any;
+        await eventsInsertQuery2.insert({
+          call_log_id: existingCallData.id,
           workspace_id: workspaceId,
           event_type: callStatus,
           twilio_call_sid: callSid,
@@ -152,13 +158,13 @@ export async function POST(request: NextRequest) {
             to,
             direction,
           },
-        });
+        } as any);
       }
 
       // Forward the call if forwarding number is set
-      if (trackingNumber.forwarding_number) {
+      if (trackingNumberData.forwarding_number) {
         const twimlXml = await forwardCall({
-          to: trackingNumber.forwarding_number,
+          to: trackingNumberData.forwarding_number,
           from: to,
           recordingEnabled: true, // Enable recording for V2
           recordingStatusCallback: `${request.nextUrl.origin}/api/webhooks/twilio/recording`,
@@ -178,31 +184,33 @@ export async function POST(request: NextRequest) {
       }
     } else if (callStatus === 'completed' || callStatus === 'busy' || callStatus === 'no-answer' || callStatus === 'failed') {
       // Update call log with completion status
-      const { data: callLog } = await supabase
-        .from('call_logs')
+      const { data: callLog } = await (supabase
+        .from('call_logs' as any)
         .select('id')
         .eq('workspace_id', workspaceId)
         .eq('caller_number', from)
         .order('call_started_at', { ascending: false })
         .limit(1)
-        .single();
+        .single() as any);
 
-      if (callLog) {
+      const callLogData = callLog as { id: string } | null;
+      if (callLogData) {
         const finalStatus = callStatus === 'completed' ? 'completed' : 
                            callStatus === 'busy' || callStatus === 'no-answer' ? 'missed' : 'abandoned';
 
-        await supabase
-          .from('call_logs')
+        const updateQuery = supabase.from('call_logs' as any) as any;
+        await updateQuery
           .update({
             status: finalStatus,
             duration_seconds: callDuration ? parseInt(callDuration) : 0,
             call_ended_at: new Date().toISOString(),
-          })
-          .eq('id', callLog.id);
+          } as any)
+          .eq('id', callLogData.id);
 
         // Create completion event
-        await supabase.from('call_events').insert({
-          call_log_id: callLog.id,
+        const eventsInsertQuery3 = supabase.from('call_events' as any) as any;
+        await eventsInsertQuery3.insert({
+          call_log_id: callLogData.id,
           workspace_id: workspaceId,
           event_type: callStatus,
           twilio_call_sid: callSid,
@@ -212,16 +220,16 @@ export async function POST(request: NextRequest) {
             direction,
             duration: callDuration,
           },
-        });
+        } as any);
 
         // Track conversions for completed calls
         if (finalStatus === 'completed') {
           // Get full call log with attribution data
-          const { data: fullCallLog } = await supabase
-            .from('call_logs')
+          const { data: fullCallLog } = await (supabase
+            .from('call_logs' as any)
             .select('*')
-            .eq('id', callLog.id)
-            .single();
+            .eq('id', callLogData.id)
+            .single() as any);
 
           if (fullCallLog) {
             // Track Google Ads conversion if GCLID exists
@@ -255,7 +263,7 @@ export async function POST(request: NextRequest) {
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
                     workspace_id: workspaceId,
-                    call_log_id: callLog.id,
+                    call_log_id: callLogData.id,
                     fbp,
                     fbc,
                   }),

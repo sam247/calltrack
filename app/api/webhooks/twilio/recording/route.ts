@@ -18,38 +18,40 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient();
 
     // Find the call log by Twilio call SID
-    const { data: callEvent } = await supabase
-      .from('call_events')
+    const { data: callEvent } = await (supabase
+      .from('call_events' as any)
       .select('call_log_id, workspace_id')
       .eq('twilio_call_sid', callSid)
       .order('created_at', { ascending: false })
       .limit(1)
-      .single();
+      .single() as any);
 
-    if (callEvent && recordingStatus === 'completed') {
+    const callEventData = callEvent as { call_log_id: string; workspace_id: string } | null;
+    if (callEventData && recordingStatus === 'completed') {
       // Create or update call recording record
-      const { data: existingRecording } = await supabase
-        .from('call_recordings')
+      const recordingsQuery = supabase.from('call_recordings' as any) as any;
+      const { data: existingRecording } = await recordingsQuery
         .select('id')
-        .eq('call_log_id', callEvent.call_log_id)
+        .eq('call_log_id', callEventData.call_log_id)
         .single();
 
       if (existingRecording) {
-        await supabase
-          .from('call_recordings')
+        const updateQuery = supabase.from('call_recordings' as any) as any;
+        await updateQuery
           .update({
             storage_path: recordingUrl,
             duration_seconds: recordingDuration ? parseInt(recordingDuration) : null,
             transcription_status: 'pending', // Will be processed by AI service
-          })
+          } as any)
           .eq('id', existingRecording.id);
       } else {
-        await supabase.from('call_recordings').insert({
-          call_log_id: callEvent.call_log_id,
+        const insertQuery = supabase.from('call_recordings' as any) as any;
+        await insertQuery.insert({
+          call_log_id: callEventData.call_log_id,
           storage_path: recordingUrl,
           duration_seconds: recordingDuration ? parseInt(recordingDuration) : null,
           transcription_status: 'pending',
-        });
+        } as any);
       }
 
       // Trigger transcription processing (async)
@@ -59,7 +61,7 @@ export async function POST(request: NextRequest) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            call_log_id: callEvent.call_log_id,
+            call_log_id: callEventData.call_log_id,
             recording_url: recordingUrl,
           }),
         }).catch(error => {

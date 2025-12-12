@@ -73,24 +73,24 @@ export function RealtimeCallLog() {
       }
 
       setLoading(true);
-      const { data, error } = await supabase
-        .from("call_logs")
+      const { data, error } = await (supabase
+        .from("call_logs" as any)
         .select("*")
         .eq("workspace_id", currentWorkspace.id)
         .order("call_started_at", { ascending: false })
-        .limit(50);
+        .limit(50) as any);
 
       if (error) {
         console.error("Error fetching calls:", error);
       } else {
-        setCalls(data || []);
+        const callsData = (data || []) as CallLog[];
+        setCalls(callsData);
         // Identify active calls (recent calls without end time or status)
         const active = new Set(
-          (data || [])
+          callsData
             .filter(
               (call) =>
                 !call.status ||
-                call.status === "ringing" ||
                 (new Date(call.call_started_at).getTime() > Date.now() - 60000 &&
                   !call.status)
             )
@@ -159,11 +159,11 @@ export function RealtimeCallLog() {
           const event = payload.new as any;
           if (event.workspace_id === currentWorkspace.id) {
             // Refresh the call log to get updated status
-            const { data: updatedCall } = await supabase
-              .from("call_logs")
+            const { data: updatedCall } = await (supabase
+              .from("call_logs" as any)
               .select("*")
               .eq("id", event.call_log_id)
-              .single();
+              .single() as any);
 
             if (updatedCall) {
               setCalls((prev) =>

@@ -50,35 +50,37 @@ export function AttributionModels({ dateRange }: AttributionModelsProps) {
       setLoading(true);
       try {
         // Fetch attribution paths with conversions (calls)
-        const { data: paths, error: pathsError } = await supabase
-          .from('attribution_paths')
+        const { data: paths, error: pathsError } = await (supabase
+          .from('attribution_paths' as any)
           .select('*')
           .eq('workspace_id', currentWorkspace.id)
           .gte('updated_at', dateRange.from.toISOString())
-          .lte('updated_at', dateRange.to.toISOString());
+          .lte('updated_at', dateRange.to.toISOString()) as any);
 
         if (pathsError) throw pathsError;
 
         // Fetch calls that have visitor_id to match with attribution paths
-        const { data: calls, error: callsError } = await supabase
-          .from('call_logs')
+        const { data: calls, error: callsError } = await (supabase
+          .from('call_logs' as any)
           .select('visitor_id, status')
           .eq('workspace_id', currentWorkspace.id)
           .eq('status', 'completed')
           .gte('call_started_at', dateRange.from.toISOString())
           .lte('call_started_at', dateRange.to.toISOString())
-          .not('visitor_id', 'is', null);
+          .not('visitor_id', 'is', null) as any);
 
         if (callsError) throw callsError;
 
         // Filter paths that resulted in conversions
+        const callsData = (calls || []) as { visitor_id: string | null }[];
         const conversionVisitorIds = new Set(
-          (calls || []).map(c => c.visitor_id).filter(Boolean) as string[]
+          callsData.map(c => c.visitor_id).filter(Boolean) as string[]
         );
 
-        const conversionPaths = (paths || []).filter(p => 
+        const pathsData = (paths || []) as any[];
+        const conversionPaths = pathsData.filter(p => 
           conversionVisitorIds.has(p.visitor_id)
-        );
+        ) as any[];
 
         // Calculate attribution for each model
         const modelTypes: AttributionModel[] = ['first-touch', 'last-touch', 'linear', 'time-decay', 'position-based'];

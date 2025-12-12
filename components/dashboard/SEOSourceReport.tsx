@@ -26,10 +26,10 @@ export function SEOSourceReport() {
       setLoading(true);
       
       // Fetch SEO sources
-      const { data: seoData, error: seoError } = await supabase
-        .from("seo_sources")
+      const { data: seoData, error: seoError } = await (supabase
+        .from("seo_sources" as any)
         .select("*")
-        .eq("workspace_id", currentWorkspace.id);
+        .eq("workspace_id", currentWorkspace.id) as any);
 
       if (seoError) {
         console.error("Error fetching SEO sources:", seoError);
@@ -38,12 +38,13 @@ export function SEOSourceReport() {
       }
 
       // For each source, count calls
+      const seoDataTyped = (seoData || []) as { id: string; name: string; source_type: string }[];
       const sourcesWithCounts = await Promise.all(
-        (seoData || []).map(async (source) => {
-          const { count } = await supabase
-            .from("call_logs")
+        seoDataTyped.map(async (source) => {
+          const { count } = await (supabase
+            .from("call_logs" as any)
             .select("*", { count: "exact", head: true })
-            .eq("seo_source_id", source.id);
+            .eq("seo_source_id", source.id) as any);
 
           return {
             id: source.id,

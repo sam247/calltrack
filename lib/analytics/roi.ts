@@ -39,7 +39,7 @@ export function calculateROI(
     medium: string;
   }>();
 
-  calls.forEach(call => {
+  calls.forEach((call: any) => {
     const source = call.utm_source || call.source || 'direct';
     const medium = call.utm_medium || 'none';
     const key = `${source}:${medium}`;
@@ -159,7 +159,7 @@ export function calculateCampaignROI(
   let totalCompleted = 0;
   let totalCost = 0;
 
-  analytics.forEach(day => {
+  analytics.forEach((day: any) => {
     totalCalls += day.total_calls || 0;
     totalCompleted += day.completed_calls || 0;
 
@@ -180,10 +180,10 @@ export function calculateCampaignROI(
   // Calculate by source
   const bySource: Record<string, ROICalculation> = {};
   
-  analytics.forEach(day => {
+  analytics.forEach((day: any) => {
     if (day.source_attribution) {
       const attribution = day.source_attribution as Record<string, any>;
-      Object.entries(attribution).forEach(([source, data]: [string, any]) => {
+      Object.entries(attribution).forEach(([source, data]) => {
         if (!bySource[source]) {
           bySource[source] = {
             source: source.split(':')[0] || source,

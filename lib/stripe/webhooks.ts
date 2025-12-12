@@ -81,8 +81,8 @@ async function handleSubscriptionChange(
     stripe_customer_id: subscription.customer as string,
     plan_tier: planTier,
     status: subscription.status,
-    current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-    current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+    current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
+    current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
     calls_included: planConfig.callsIncluded,
     updated_at: new Date().toISOString(),
   };
@@ -148,7 +148,7 @@ async function handlePaymentSucceeded(
   supabase: any,
   invoice: Stripe.Invoice
 ) {
-  const subscriptionId = invoice.subscription as string;
+  const subscriptionId = (invoice as any).subscription as string;
   if (!subscriptionId) return;
 
   const subscription = await stripe.subscriptions.retrieve(subscriptionId);
@@ -185,7 +185,7 @@ async function handlePaymentFailed(
   supabase: any,
   invoice: Stripe.Invoice
 ) {
-  const subscriptionId = invoice.subscription as string;
+  const subscriptionId = (invoice as any).subscription as string;
   if (!subscriptionId) return;
 
   const subscription = await stripe.subscriptions.retrieve(subscriptionId);

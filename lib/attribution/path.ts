@@ -1,6 +1,15 @@
-import type { Database } from '@/integrations/supabase/types';
-
-type AttributionPath = Database['public']['Tables']['attribution_paths']['Row'];
+// AttributionPath type definition (not in generated types yet)
+type AttributionPath = {
+  id: string;
+  visitor_id: string;
+  workspace_id: string;
+  touchpoints: any[];
+  first_touch: any;
+  last_touch: any;
+  conversion_touch?: any;
+  created_at: string;
+  updated_at: string;
+};
 
 export interface Touchpoint {
   timestamp: string;
