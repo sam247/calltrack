@@ -42,9 +42,12 @@ export function StatsCards() {
         return;
       }
 
-      const totalCalls = calls?.length || 0;
-      const completedCalls = calls?.filter((c) => c.status === "completed").length || 0;
-      const totalDuration = calls?.reduce((sum, c) => sum + (c.duration_seconds || 0), 0) || 0;
+      type CallData = { status: string; duration_seconds: number | null };
+      const typedCalls = (calls || []) as CallData[];
+
+      const totalCalls = typedCalls.length;
+      const completedCalls = typedCalls.filter((c) => c.status === "completed").length;
+      const totalDuration = typedCalls.reduce((sum, c) => sum + (c.duration_seconds || 0), 0);
       const avgDuration = totalCalls > 0 ? Math.round(totalDuration / totalCalls) : 0;
       const conversionRate = totalCalls > 0 ? (completedCalls / totalCalls) * 100 : 0;
 
