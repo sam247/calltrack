@@ -1,8 +1,0 @@
-{
-  "buildCommand": "cd \"React Apps/calltracker\" && npm install && npm run build",
-  "outputDirectory": "React Apps/calltracker/.next",
-  "installCommand": "cd \"React Apps/calltracker\" && npm install",
-  "framework": "nextjs",
-  "rootDirectory": "React Apps/calltracker"
-}
-
