@@ -107,7 +107,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     // Create the workspace
     const { data: workspace, error: wsError } = await supabase
       .from("workspaces")
-      .insert({ name, slug })
+      .insert({ name, slug } as { name: string; slug: string })
       .select()
       .single();
 
@@ -122,7 +122,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         workspace_id: workspace.id,
         user_id: user.id,
         role: "owner",
-      });
+      } as { workspace_id: string; user_id: string; role: string });
 
     if (memberError) {
       return { data: null, error: memberError as Error };
