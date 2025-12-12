@@ -1,13 +1,36 @@
 import Stripe from 'stripe';
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('STRIPE_SECRET_KEY is not set');
+let stripeInstance: Stripe | null = null;
+
+/**
+ * Get Stripe client instance (lazy initialization)
+ * This allows the build to complete even if STRIPE_SECRET_KEY is not set
+ */
+function getStripe(): Stripe {
+  if (!stripeInstance) {
+    if (!process.env.STRIPE_SECRET_KEY) {
+      throw new Error('STRIPE_SECRET_KEY is not set');
+    }
+    stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: '2025-11-17.clover' as any,
+      typescript: true,
+    });
+  }
+  return stripeInstance;
 }
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2025-11-17.clover' as any,
-  typescript: true,
-});
+// Lazy proxy that only initializes Stripe when actually used
+export const stripe = new Proxy({} as Stripe, {
+  get(_target, prop) {
+    const instance = getStripe();
+    const value = instance[prop as keyof Stripe];
+    // If it's a function, bind it to the instance
+    if (typeof value === 'function') {
+      return value.bind(instance);
+    }
+    return value;
+  },
+}) as Stripe;
 
 export type PlanTier = 'starter' | 'pro' | 'enterprise';
 
