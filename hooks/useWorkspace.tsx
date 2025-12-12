@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
+import type { Database } from "@/integrations/supabase/types";
 
 export interface Workspace {
   id: string;
@@ -105,9 +106,13 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     const slug = name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
     
     // Create the workspace
+    const workspaceData: Database["public"]["Tables"]["workspaces"]["Insert"] = {
+      name,
+      slug,
+    };
     const { data: workspace, error: wsError } = await supabase
       .from("workspaces")
-      .insert({ name, slug } as { name: string; slug: string })
+      .insert(workspaceData)
       .select()
       .single();
 
@@ -116,13 +121,14 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     }
 
     // Add user as owner
+    const memberData: Database["public"]["Tables"]["workspace_members"]["Insert"] = {
+      workspace_id: workspace.id,
+      user_id: user.id,
+      role: "owner",
+    };
     const { error: memberError } = await supabase
       .from("workspace_members")
-      .insert({
-        workspace_id: workspace.id,
-        user_id: user.id,
-        role: "owner",
-      } as { workspace_id: string; user_id: string; role: string });
+      .insert(memberData);
 
     if (memberError) {
       return { data: null, error: memberError as Error };
