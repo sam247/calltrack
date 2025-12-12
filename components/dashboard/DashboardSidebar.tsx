@@ -1,3 +1,5 @@
+'use client'
+
 import { BarChart3, Phone, Settings, LogOut, FileText, Globe } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -15,8 +17,6 @@ import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-'use client'
-
 import { useRouter } from "next/navigation";
 
 const menuItems = [
