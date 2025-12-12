@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { SubscriptionCard } from "@/components/billing/SubscriptionCard";
 
 export default function DashboardSettingsPage() {
   return (
@@ -51,8 +52,11 @@ export default function DashboardSettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Billing */}
-        <Card className="border-border mb-6">
+            {/* Billing */}
+            <div className="mb-6">
+              <SubscriptionCard />
+            </div>
+            <Card className="border-border mb-6">
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg">Billing</CardTitle>

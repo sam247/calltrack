@@ -1,6 +1,6 @@
 'use client'
 
-import { BarChart3, Phone, Settings, LogOut, FileText, Globe } from "lucide-react";
+import { BarChart3, Phone, Settings, LogOut, FileText, Globe, TrendingUp } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -22,6 +22,9 @@ import { useRouter } from "next/navigation";
 const menuItems = [
   { title: "Overview", url: "/dashboard", icon: BarChart3 },
   { title: "Call Log", url: "/dashboard/calls", icon: Phone },
+  { title: "Tracking Numbers", url: "/dashboard/tracking-numbers", icon: Phone },
+  { title: "Attribution", url: "/dashboard/attribution", icon: TrendingUp },
+  { title: "Analytics", url: "/dashboard/analytics", icon: BarChart3 },
   { title: "SEO Sources", url: "/dashboard/seo", icon: Globe },
   { title: "Reports", url: "/dashboard/reports", icon: FileText },
   { title: "Settings", url: "/dashboard/settings", icon: Settings },
