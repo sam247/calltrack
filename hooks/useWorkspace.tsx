@@ -106,29 +106,24 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     const slug = name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
     
     // Create the workspace
-    const workspaceData: Database["public"]["Tables"]["workspaces"]["Insert"] = {
-      name,
-      slug,
-    };
-    const { data: workspace, error: wsError } = await supabase
+    const { data: workspace, error: wsError } = await (supabase
       .from("workspaces")
-      .insert(workspaceData)
+      .insert({ name, slug } as Database["public"]["Tables"]["workspaces"]["Insert"])
       .select()
-      .single();
+      .single() as any);
 
     if (wsError) {
       return { data: null, error: wsError as Error };
     }
 
     // Add user as owner
-    const memberData: Database["public"]["Tables"]["workspace_members"]["Insert"] = {
-      workspace_id: workspace.id,
-      user_id: user.id,
-      role: "owner",
-    };
-    const { error: memberError } = await supabase
+    const { error: memberError } = await (supabase
       .from("workspace_members")
-      .insert(memberData);
+      .insert({
+        workspace_id: workspace.id,
+        user_id: user.id,
+        role: "owner",
+      } as Database["public"]["Tables"]["workspace_members"]["Insert"]) as any);
 
     if (memberError) {
       return { data: null, error: memberError as Error };
