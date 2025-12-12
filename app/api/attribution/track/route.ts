@@ -36,13 +36,16 @@ export async function POST(request: NextRequest) {
 
     // Parse attribution
     const parsedAttribution = parseUTMAttribution({
-      source: utm_source || 'direct',
-      medium: utm_medium || 'none',
-      campaign: utm_campaign,
-      term: utm_term,
-      content: utm_content,
+      utm_source: utm_source || 'direct',
+      utm_medium: utm_medium || 'none',
+      utm_campaign: utm_campaign,
+      utm_term: utm_term,
+      utm_content: utm_content,
       referrer,
-      landingPage: landing_page,
+      landing_page: landing_page || '',
+      session_id,
+      visitor_id,
+      timestamp: new Date().toISOString(),
     });
 
     // If no UTM params, try to parse from referrer

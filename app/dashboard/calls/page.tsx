@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic'
 import { useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { DateFilter } from "@/components/dashboard/DateFilter";
-import { CallLogTable } from "@/components/dashboard/CallLogTable";
+import { RealtimeCallLog } from "@/components/dashboard/RealtimeCallLog";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 
@@ -41,7 +41,7 @@ export default function DashboardCallsPage() {
         </div>
 
         {/* Table */}
-        <CallLogTable />
+        <RealtimeCallLog />
       </div>
     </DashboardLayout>
   );
