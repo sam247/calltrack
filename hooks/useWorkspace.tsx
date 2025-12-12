@@ -107,10 +107,10 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     
     // Create the workspace
     const { data: workspace, error: wsError } = await (supabase
-      .from("workspaces")
-      .insert({ name, slug } as Database["public"]["Tables"]["workspaces"]["Insert"])
+      .from("workspaces") as any)
+      .insert({ name, slug })
       .select()
-      .single() as any);
+      .single();
 
     if (wsError) {
       return { data: null, error: wsError as Error };
@@ -118,12 +118,12 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
     // Add user as owner
     const { error: memberError } = await (supabase
-      .from("workspace_members")
+      .from("workspace_members") as any)
       .insert({
         workspace_id: workspace.id,
         user_id: user.id,
         role: "owner",
-      } as Database["public"]["Tables"]["workspace_members"]["Insert"]) as any);
+      });
 
     if (memberError) {
       return { data: null, error: memberError as Error };
