@@ -71,36 +71,44 @@ export async function POST(request: NextRequest) {
     };
 
     // Get existing attribution path
-    const { data: existingPath } = await supabase
-      .from('attribution_paths')
+    const { data: existingPath, error: pathError } = await (supabase
+      .from('attribution_paths' as any)
       .select('*')
       .eq('visitor_id', visitor_id)
       .eq('workspace_id', workspace_id)
-      .single();
+      .single() as any);
 
-    if (existingPath) {
+    if (existingPath && !pathError) {
       // Update existing path
-      const touchpoints = (existingPath.touchpoints as any[]) || [];
+      const pathData = existingPath as {
+        id: string;
+        touchpoints: any;
+        first_touch: any;
+        last_touch: any;
+      };
+      const touchpoints = (Array.isArray(pathData.touchpoints) ? pathData.touchpoints : []) as any[];
       touchpoints.push(touchpoint);
 
       // First touch should remain the first touchpoint (don't update)
-      const firstTouch = existingPath.first_touch || touchpoint;
+      const firstTouch = pathData.first_touch || touchpoint;
       
       // Update last touch
       const lastTouch = touchpoint;
 
-      await supabase
-        .from('attribution_paths')
+      const updateQuery = supabase
+        .from('attribution_paths' as any) as any;
+      await updateQuery
         .update({
           touchpoints: touchpoints,
           first_touch: firstTouch, // Preserve original first touch
           last_touch: lastTouch,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', existingPath.id);
+        .eq('id', pathData.id);
     } else {
       // Create new attribution path - this is the first touch
-      await supabase.from('attribution_paths').insert({
+      const insertQuery = supabase.from('attribution_paths' as any) as any;
+      await insertQuery.insert({
         visitor_id,
         workspace_id,
         touchpoints: [touchpoint],

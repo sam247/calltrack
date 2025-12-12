@@ -85,7 +85,8 @@ export async function POST(request: NextRequest) {
       .eq('user_id', user.id)
       .single();
 
-    if (!member || member.role !== 'owner') {
+    const memberData = member as { role: string } | null;
+    if (!memberData || memberData.role !== 'owner') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -96,11 +97,13 @@ export async function POST(request: NextRequest) {
       .eq('id', user.id)
       .single();
 
+    const profileData = profile as { email?: string; full_name?: string } | null;
+
     // Create subscription
     const result = await createSubscription({
       workspaceId: workspace_id,
-      customerEmail: profile?.email || user.email || '',
-      customerName: profile?.full_name || undefined,
+      customerEmail: profileData?.email || user.email || '',
+      customerName: profileData?.full_name || undefined,
       planTier: plan_tier as PlanTier,
       trialDays: trial_days || 14,
     });
@@ -146,7 +149,8 @@ export async function PATCH(request: NextRequest) {
       .eq('user_id', user.id)
       .single();
 
-    if (!member || member.role !== 'owner') {
+    const memberData = member as { role: string } | null;
+    if (!memberData || memberData.role !== 'owner') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -157,7 +161,8 @@ export async function PATCH(request: NextRequest) {
       .eq('workspace_id', workspace_id)
       .single();
 
-    if (!subscription) {
+    const subscriptionData = subscription as { stripe_subscription_id: string } | null;
+    if (!subscriptionData) {
       return NextResponse.json(
         { error: 'Subscription not found' },
         { status: 404 }
@@ -173,19 +178,19 @@ export async function PATCH(request: NextRequest) {
             { status: 400 }
           );
         }
-        await updateSubscription(subscription.stripe_subscription_id, plan_tier as PlanTier);
+        await updateSubscription(subscriptionData.stripe_subscription_id, plan_tier as PlanTier);
         break;
 
       case 'cancel':
-        await cancelSubscription(subscription.stripe_subscription_id, false);
+        await cancelSubscription(subscriptionData.stripe_subscription_id, false);
         break;
 
       case 'cancel_immediately':
-        await cancelSubscription(subscription.stripe_subscription_id, true);
+        await cancelSubscription(subscriptionData.stripe_subscription_id, true);
         break;
 
       case 'resume':
-        await resumeSubscription(subscription.stripe_subscription_id);
+        await resumeSubscription(subscriptionData.stripe_subscription_id);
         break;
 
       default:

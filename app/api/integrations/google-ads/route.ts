@@ -64,7 +64,13 @@ export async function POST(request: NextRequest) {
       .eq('workspace_id', workspace_id)
       .single();
 
-    if (!callLog) {
+    const callLogData = callLog as {
+      call_started_at: string;
+      caller_number: string;
+      duration_seconds: number | null;
+    } | null;
+
+    if (!callLogData) {
       return NextResponse.json({ error: 'Call log not found' }, { status: 404 });
     }
 
@@ -72,11 +78,11 @@ export async function POST(request: NextRequest) {
     const result = await trackGoogleAdsConversion(config, {
       conversionActionId: config.conversionActionId,
       gclid,
-      conversionDateTime: new Date(callLog.call_started_at).toISOString(),
+      conversionDateTime: new Date(callLogData.call_started_at).toISOString(),
       conversionValue: conversion_value || undefined,
       currencyCode: 'USD',
-      callerNumber: callLog.caller_number,
-      callDuration: callLog.duration_seconds || undefined,
+      callerNumber: callLogData.caller_number,
+      callDuration: callLogData.duration_seconds || undefined,
     });
 
     if (!result.success) {

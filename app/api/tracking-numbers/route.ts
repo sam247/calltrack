@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     }
 
     const { data: trackingNumbers, error } = await supabase
-      .from('tracking_numbers')
+      .from('tracking_numbers' as any)
       .select('*')
       .eq('workspace_id', workspaceId)
       .order('created_at', { ascending: false });
@@ -83,7 +83,8 @@ export async function POST(request: NextRequest) {
       .eq('user_id', user.id)
       .single();
 
-    if (!member || (member.role !== 'owner' && member.role !== 'admin')) {
+    const memberData = member as { role: string } | null;
+    if (!memberData || (memberData.role !== 'owner' && memberData.role !== 'admin')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -127,19 +128,19 @@ export async function POST(request: NextRequest) {
 
     // Create tracking number record
     const { data: trackingNumber, error } = await supabase
-      .from('tracking_numbers')
+      .from('tracking_numbers' as any)
       .insert({
-        workspace_id,
-        phone_number: finalPhoneNumber,
-        twilio_number_sid: twilioNumberSid,
-        forwarding_number: forwarding_number || null,
-        label: label || null,
-        source: source || null,
-        campaign: campaign || null,
-        is_active: true,
-      })
-      .select()
-      .single();
+          workspace_id,
+          phone_number: finalPhoneNumber,
+          twilio_number_sid: twilioNumberSid,
+          forwarding_number: forwarding_number || null,
+          label: label || null,
+          source: source || null,
+          campaign: campaign || null,
+          is_active: true,
+        } as any)
+        .select()
+        .single() as any;
 
     if (error) {
       throw error;
@@ -177,7 +178,7 @@ export async function PATCH(request: NextRequest) {
 
     // Get tracking number and verify access
     const { data: trackingNumber } = await supabase
-      .from('tracking_numbers')
+      .from('tracking_numbers' as any)
       .select('*, workspaces!inner(id)')
       .eq('id', id)
       .single();
@@ -193,7 +194,8 @@ export async function PATCH(request: NextRequest) {
       .eq('user_id', user.id)
       .single();
 
-    if (!member || (member.role !== 'owner' && member.role !== 'admin')) {
+    const memberData = member as { role: string } | null;
+    if (!memberData || (memberData.role !== 'owner' && memberData.role !== 'admin')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -217,7 +219,7 @@ export async function PATCH(request: NextRequest) {
     if (is_active !== undefined) updateData.is_active = is_active;
 
     const { data: updated, error } = await supabase
-      .from('tracking_numbers')
+      .from('tracking_numbers' as any)
       .update(updateData)
       .eq('id', id)
       .select()
@@ -257,7 +259,7 @@ export async function DELETE(request: NextRequest) {
 
     // Get tracking number and verify access
     const { data: trackingNumber } = await supabase
-      .from('tracking_numbers')
+      .from('tracking_numbers' as any)
       .select('*, workspaces!inner(id)')
       .eq('id', id)
       .single();
@@ -273,7 +275,8 @@ export async function DELETE(request: NextRequest) {
       .eq('user_id', user.id)
       .single();
 
-    if (!member || (member.role !== 'owner' && member.role !== 'admin')) {
+    const memberData = member as { role: string } | null;
+    if (!memberData || (memberData.role !== 'owner' && memberData.role !== 'admin')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -289,10 +292,10 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Delete from database
-    const { error } = await supabase
-      .from('tracking_numbers')
+    const { error } = await (supabase
+      .from('tracking_numbers' as any)
       .delete()
-      .eq('id', id);
+      .eq('id', id) as any);
 
     if (error) {
       throw error;

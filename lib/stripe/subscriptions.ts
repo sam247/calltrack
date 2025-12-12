@@ -1,5 +1,8 @@
 import { stripe, PLAN_CONFIG, type PlanTier } from './client';
 
+// Re-export PlanTier for use in other modules
+export type { PlanTier };
+
 export interface CreateSubscriptionParams {
   workspaceId: string;
   customerEmail: string;

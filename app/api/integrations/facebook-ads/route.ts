@@ -60,7 +60,13 @@ export async function POST(request: NextRequest) {
       .eq('workspace_id', workspace_id)
       .single();
 
-    if (!callLog) {
+    const callLogData = callLog as {
+      call_started_at: string;
+      landing_page: string | null;
+      caller_number: string;
+    } | null;
+
+    if (!callLogData) {
       return NextResponse.json({ error: 'Call log not found' }, { status: 404 });
     }
 
@@ -73,10 +79,10 @@ export async function POST(request: NextRequest) {
     // Track conversion
     const result = await trackFacebookAdsConversion(config, {
       eventName: 'Lead', // or 'Purchase' for paid conversions
-      eventTime: Math.floor(new Date(callLog.call_started_at).getTime() / 1000),
-      eventSourceUrl: callLog.landing_page || undefined,
+      eventTime: Math.floor(new Date(callLogData.call_started_at).getTime() / 1000),
+      eventSourceUrl: callLogData.landing_page || undefined,
       userData: {
-        phone: callLog.caller_number,
+        phone: callLogData.caller_number,
         clientIpAddress: clientIp,
         clientUserAgent: userAgent,
       },
